@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:include="include/admin/adminHeader::html('产品属性管理')"></head>
+<body>
+<div th:replace="include/admin/adminNavigator::html"></div>
+
+<div id="workingArea">
+    <ol class="breadcrumb">
+        <li><a href="admin_category_list">所有分类</a></li>
+        <li><a :href="'admin_product_list?cid='+category.id">{{category.name}}</a></li>
+        <li class="active">{{product.name}}</li>
+        <li class="active">产品属性管理</li>
+    </ol>
+
+    <div class="editPVDiv">
+        <div v-for="bean in beans" class="eachPV">
+            <span class="pvName">{{bean.property.name}}</span>
+            <input class="pvValue" :id="'pvid'+bean.id" type="text" v-model="bean.value" @change="update(bean)">
+        </div>
+        <div style="clear:both"></div>
+    </div>
+
+</div>
+<!--一种愚蠢的让页脚居底的方法-->
+<div style="height: 500px"></div>
+<div th:replace="include/admin/adminFooter::html"></div>
+</body>
+
+<script>
+    $(function () {
+        var pid = getUrlParms("pid");
+        var data4Vue = {
+            uri: 'propertyValues',
+            beans: [],
+            product: '',
+            category: '',
+        };
+
+        //ViewModel
+        var vue = new Vue({
+            el: '#workingArea',
+            data: data4Vue,
+            mounted: function () { //mounted　表示这个 Vue 对象加载成功了
+                this.getProduct(pid);
+                this.list();
+            },
+            methods: {
+                list: function () {
+                    var url = "products/" + pid + "/" + this.uri;
+                    axios.get(url).then(function (response) {
+                        vue.beans = response.data;
+                    });
+                },
+                getProduct: function (pid) {
+                    var url = "products/" + pid;
+                    axios.get(url).then(function (response) {
+                        vue.product = response.data;
+                        vue.category = vue.product.category;
+                    })
+                },
+                update: function (bean) {
+                    $("#pvid" + bean.id).css("border", "2px solid yellow");
+                    var url = this.uri;
+                    axios.put(url, bean).then(function (response) {
+                        if (bean.id == response.data.id)
+                            $("#pvid" + bean.id).css("border", "2px solid green");
+                        else
+                            $("#pvid" + bean.id).css("border", "2px solid red");
+                    });
+                }
+
+            }
+
+        });
+    });
+
+</script>
+
+<style>
+
+</style>
+</html>
