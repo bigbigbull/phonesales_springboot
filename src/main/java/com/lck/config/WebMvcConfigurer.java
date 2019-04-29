@@ -1,6 +1,7 @@
 package com.lck.config;
 
 import com.lck.interceptor.LoginInterceptor;
+import com.lck.interceptor.OtherInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -21,9 +22,16 @@ class WebMvcConfigurer extends WebMvcConfigurerAdapter {
         return new LoginInterceptor();
     }
 
+    @Bean
+    public OtherInterceptor getOtherIntercepter() {
+        return new OtherInterceptor();
+    }
+
     @Override
-    public void addInterceptors(InterceptorRegistry registry){
+    public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(getLoginIntercepter())
+                .addPathPatterns("/**");
+        registry.addInterceptor(getOtherIntercepter())
                 .addPathPatterns("/**");
     }
 }

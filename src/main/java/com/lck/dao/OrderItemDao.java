@@ -15,13 +15,23 @@ import java.util.List;
  * @date 2019/04/26
  */
 public interface OrderItemDao extends JpaRepository<OrderItem,Integer> {
+    /**
+     * 根据订单查询订单项信息
+     * @param order
+     * @return
+     */
     List<OrderItem> findByOrderOrderByIdDesc(Order order);
 
+    /**
+     * 根据产品查询订单项信息
+     * @param product
+     * @return
+     */
     List<OrderItem> findByProduct(Product product);
 
     /**
      * 查找没有唯有订单id的订单项记录
-     * @param
+     * @param  user
      * @return
      */
     List<OrderItem> findByUserAndOrderIsNull(User user);
