@@ -26,7 +26,7 @@ import com.lck.service.OrderService;
 
 @Entity
 @Table(name = "order_")
-@JsonIgnoreProperties({"handler", "hibernateLazyInitializer"})
+@JsonIgnoreProperties({ "handler","hibernateLazyInitializer" })
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,7 +34,7 @@ public class Order {
     private int id;
 
     @ManyToOne
-    @JoinColumn(name = "uid")
+    @JoinColumn(name="uid")
 
     private User user;
 
@@ -63,10 +63,9 @@ public class Order {
         this.statusDesc = statusDesc;
     }
 
-    public String getStatusDesc() {
-        if (null != statusDesc) {
-            return statusDesc;
-        }
+    public String getStatusDesc(){
+        if(null!=statusDesc)   {
+            return statusDesc;   }
         String desc;
         switch(status){
             case OrderService.WAIT_PAY:
@@ -101,19 +100,15 @@ public class Order {
     public void setId(int id) {
         this.id = id;
     }
-
     public String getAddress() {
         return address;
     }
-
     public void setAddress(String address) {
         this.address = address;
     }
-
     public String getPost() {
         return post;
     }
-
     public void setPost(String post) {
         this.post = post;
     }
@@ -121,47 +116,36 @@ public class Order {
     public String getMobile() {
         return mobile;
     }
-
     public void setMobile(String mobile) {
         this.mobile = mobile;
     }
-
     public String getUserMessage() {
         return userMessage;
     }
-
     public void setUserMessage(String userMessage) {
         this.userMessage = userMessage;
     }
-
     public Date getCreateDate() {
         return createDate;
     }
-
     public void setCreateDate(Date createDate) {
         this.createDate = createDate;
     }
-
     public Date getPayDate() {
         return payDate;
     }
-
     public void setPayDate(Date payDate) {
         this.payDate = payDate;
     }
-
     public Date getDeliveryDate() {
         return deliveryDate;
     }
-
     public void setDeliveryDate(Date deliveryDate) {
         this.deliveryDate = deliveryDate;
     }
-
     public Date getConfirmDate() {
         return confirmDate;
     }
-
     public void setConfirmDate(Date confirmDate) {
         this.confirmDate = confirmDate;
     }
@@ -221,4 +205,6 @@ public class Order {
     public void setTotalNumber(int totalNumber) {
         this.totalNumber = totalNumber;
     }
+
 }
+

@@ -45,6 +45,7 @@ public class ProductImageController {
 
         if (ProductImageTypeEnum.TYPE_DETAIL.toString().equals(type)) {
             List<ProductImage> details = productImageService.listDetailProductImages(product);
+            return details;
         }
 
         return new ArrayList<>();
@@ -83,19 +84,19 @@ public class ProductImageController {
         if (ProductImageTypeEnum.TYPE_SINGLE.toString().equals(productImage.getType())) {
             String imageFolderSmall = request.getServletContext().getRealPath("img/productSingle_small");
             String imageFolderMiddle = request.getServletContext().getRealPath("img/productSingle_middle");
-            File fileSmall = new File(imageFolderSmall,fileName);
-            File fileMiddle = new File(imageFolderMiddle,fileName);
+            File fileSmall = new File(imageFolderSmall, fileName);
+            File fileMiddle = new File(imageFolderMiddle, fileName);
             fileSmall.getParentFile().mkdirs();
             fileMiddle.getParentFile().mkdirs();
-            ImageUtil.resizeImage(file,56,56,fileSmall);
-            ImageUtil.resizeImage(file,56,56,fileMiddle);
+            ImageUtil.resizeImage(file, 56, 56, fileSmall);
+            ImageUtil.resizeImage(file, 56, 56, fileMiddle);
         }
 
         return productImage;
     }
 
     @DeleteMapping("/productImages/{id}")
-    public String delete(@PathVariable("id") Integer id,HttpServletRequest request)throws Exception{
+    public String delete(@PathVariable("id") Integer id, HttpServletRequest request) throws Exception {
         ProductImage productImage = productImageService.get(id);
         productImageService.delete(id);
 
@@ -106,16 +107,16 @@ public class ProductImageController {
             folder += "productDetail";
         }
 
-        File  imageFolder= new File(request.getServletContext().getRealPath(folder));
-        File file = new File(imageFolder,productImage.getId()+".jpg");
+        File imageFolder = new File(request.getServletContext().getRealPath(folder));
+        File file = new File(imageFolder, productImage.getId() + ".jpg");
         String fileName = file.getName();
         file.delete();
 
         if (ProductImageTypeEnum.TYPE_SINGLE.toString().equals(productImage.getType())) {
             String imageFolderSmall = request.getServletContext().getRealPath("img/productSingle_small");
             String imageFolderMiddle = request.getServletContext().getRealPath("img/productSingle_middle");
-            File fileSmall = new File(imageFolderSmall,fileName);
-            File fileMiddle = new File(imageFolderMiddle,fileName);
+            File fileSmall = new File(imageFolderSmall, fileName);
+            File fileMiddle = new File(imageFolderMiddle, fileName);
             fileSmall.delete();
             fileMiddle.delete();
         }
@@ -123,5 +124,5 @@ public class ProductImageController {
         return null;
     }
 
-    
+
 }

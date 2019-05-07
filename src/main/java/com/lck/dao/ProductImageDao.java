@@ -20,6 +20,6 @@ public interface ProductImageDao extends JpaRepository<ProductImage,Integer> {
      * @param type
      * @return  List
      */
-    List<ProductImage> findByProductAndTypeOrderByIdDesc(Product product,String type);
+    List<ProductImage> findByProductAndTypeOrderById(Product product,String type);
     
 }

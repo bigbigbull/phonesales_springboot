@@ -1,9 +1,10 @@
 package com.lck.controller;
 
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.subject.Subject;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
-import javax.servlet.http.HttpSession;
 
 /**
  * describe:专门作前台页面的跳转
@@ -80,8 +81,12 @@ public class ForePageController {
     }
 
     @GetMapping("/forelogout")
-    public String logout(HttpSession session) {
-        session.removeAttribute("user");
+    public String logout() {
+        // 通过subject.logout退出
+        Subject subject = SecurityUtils.getSubject();
+        if(subject.isAuthenticated()){
+            subject.logout();
+        }
         return "redirect:home";
     }
 }

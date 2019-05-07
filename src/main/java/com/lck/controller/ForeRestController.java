@@ -4,10 +4,18 @@ import com.lck.comparator.*;
 import com.lck.pojo.*;
 import com.lck.service.*;
 import com.lck.util.Result;
+import com.lck.util.SpringContextUtil;
 import org.apache.commons.lang.math.RandomUtils;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authc.AuthenticationException;
+import org.apache.shiro.authc.UsernamePasswordToken;
+import org.apache.shiro.crypto.SecureRandomNumberGenerator;
+import org.apache.shiro.crypto.hash.SimpleHash;
+import org.apache.shiro.subject.Subject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.HtmlUtils;
+
 
 import javax.servlet.http.HttpSession;
 import java.text.SimpleDateFormat;
@@ -61,26 +69,38 @@ public class ForeRestController {
             return Result.fail(message);
         }
 
-        user.setPassword(password);
+        // 采用md5进行两次加密
+        String salt = new SecureRandomNumberGenerator().nextBytes().toString();
+        int times = 2;
+        String algorithmName = "md5";
+        String encodedPassword = new SimpleHash(algorithmName, password, salt, times).toString();
+
+        user.setSalt(salt);
+        user.setPassword(encodedPassword);
 
         userService.add(user);
 
         return Result.success();
     }
 
+
     @PostMapping("/forelogin")
     public Object login(@RequestBody User userParam, HttpSession session) {
         String name = userParam.getName();
         name = HtmlUtils.htmlEscape(name);
-
-        User user = userService.get(name, userParam.getPassword());
-        if (null == user) {
-            String message = "账号密码错误";
-            return Result.fail(message);
-        } else {
+        // 使用Shiro方式进行登录验证
+        Subject subject = SecurityUtils.getSubject();
+        UsernamePasswordToken usernamePasswordToken = new UsernamePasswordToken(name, userParam.getPassword());
+        try {
+            subject.login(usernamePasswordToken);
+            User user = userService.getByName(name);
             session.setAttribute("user", user);
             return Result.success();
+        } catch (AuthenticationException e) {
+            String message = "账号密码错误";
+            return Result.fail(message);
         }
+
     }
 
     @GetMapping("/foreproduct/{pid}")
@@ -103,6 +123,16 @@ public class ForeRestController {
         map.put("reviews", reviews);
 
         return Result.success(map);
+    }
+
+    @GetMapping("forecheckLogin")
+    public Object checkLogin(HttpSession session) {
+        Subject subject = SecurityUtils.getSubject();
+
+        if (subject.isAuthenticated()) {
+            return Result.success();
+        }
+        return Result.fail("未登录");
     }
 
     @GetMapping("forecategory/{cid}")
@@ -268,7 +298,7 @@ public class ForeRestController {
         return Result.success(map);
     }
 
-    @GetMapping("forepayed")
+    @GetMapping("/forepayed")
     public Object payed(int oid) {
         Order order = orderService.get(oid);
         order.setStatus(OrderService.WAIT_DELIVERY);
@@ -279,16 +309,18 @@ public class ForeRestController {
 
     @GetMapping("forebought")
     public Object bought(HttpSession session) {
-        User user =(User)  session.getAttribute("user");
-        if(null==user)  {
-            return Result.fail("未登录");  }
-        List<Order> os= orderService.listByUserAndNotDeleted(user);
+        User user = (User) session.getAttribute("user");
+        if (null == user) {
+            return Result.fail("未登录");
+        }
+        List<Order> os = orderService.listByUserWithoutDelete(user);
         orderService.removeOrderFromOrderItem(os);
         return os;
     }
 
     /**
      * 确认收货
+     *
      * @param oid
      * @return
      */
@@ -303,11 +335,12 @@ public class ForeRestController {
 
     /**
      * 确认收货成功
+     *
      * @param oid
      * @return
      */
     @GetMapping("foreorderConfirmed")
-    public Object orderConfirmed( int oid) {
+    public Object orderConfirmed(int oid) {
         Order o = orderService.get(oid);
         o.setStatus(OrderService.WAIT_REVIEW);
         o.setConfirmDate(new Date());
@@ -316,7 +349,7 @@ public class ForeRestController {
     }
 
     @PutMapping("foredeleteOrder")
-    public Object deleteOrder(int oid){
+    public Object deleteOrder(int oid) {
         Order o = orderService.get(oid);
         o.setStatus(OrderService.DELETE);
         orderService.update(o);
@@ -325,6 +358,7 @@ public class ForeRestController {
 
     /**
      * 获取评价界面
+     *
      * @param oid
      * @return
      */
@@ -336,7 +370,7 @@ public class ForeRestController {
         Product p = o.getOrderItems().get(0).getProduct();
         List<Review> reviews = reviewService.list(p);
         productService.setSaleAndReviewNumber(p);
-        Map<String,Object> map = new HashMap<>(3);
+        Map<String, Object> map = new HashMap<>(3);
         map.put("p", p);
         map.put("o", o);
         map.put("reviews", reviews);
@@ -345,11 +379,12 @@ public class ForeRestController {
 
     /**
      * 提交评价
+     *
      * @param
      * @return
      */
     @PostMapping("foredoreview")
-    public Object doreview( HttpSession session,int oid,int pid,String content) {
+    public Object doreview(HttpSession session, int oid, int pid, String content) {
         Order o = orderService.get(oid);
         o.setStatus(OrderService.FINISH);
         orderService.update(o);
@@ -357,7 +392,7 @@ public class ForeRestController {
         Product p = productService.get(pid);
         content = HtmlUtils.htmlEscape(content);
 
-        User user =(User)  session.getAttribute("user");
+        User user = (User) session.getAttribute("user");
         Review review = new Review();
         review.setContent(content);
         review.setProduct(p);

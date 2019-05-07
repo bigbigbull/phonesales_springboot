@@ -1,27 +1,27 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 
-<head th:include="include/admin/adminHeader::html('编辑分类')" ></head>
+<head th:include="include/admin/adminHeader::html('编辑品牌')" ></head>
 <body>
 <div th:replace="include/admin/adminNavigator::html" ></div>
 
 <div id="workingArea">
 
     <ol class="breadcrumb">
-        <li><a href="admin_category_list">所有分类</a></li>
-        <li class="active">编辑分类</li>
+        <li><a href="admin_category_list">所有品牌</a></li>
+        <li class="active">编辑品牌</li>
     </ol>
 
     <div class="panel panel-warning editDiv">
-        <div class="panel-heading">编辑分类</div>
+        <div class="panel-heading">编辑品牌</div>
         <div class="panel-body">
             <table class="editTable">
                 <tr>
-                    <td>分类名称</td>
+                    <td>品牌名称</td>
                     <td><input  @keyup.enter="update" v-model.trim="bean.name" type="text" class="form-control"></td>
                 </tr>
                 <tr>
-                    <td>分类图片</td>
+                    <td>品牌图片</td>
                     <td>
                         <input id="categoryPic" accept="image/*" type="file" name="image" @change="getFile($event)" />
                     </td>

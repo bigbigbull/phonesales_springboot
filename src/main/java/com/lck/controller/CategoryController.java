@@ -5,6 +5,7 @@ import com.lck.service.CategoryService;
 import com.lck.util.ImageUtil;
 import com.lck.util.Page4Navigator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 

@@ -2,14 +2,24 @@ package com.lck.service;
 
 import com.lck.dao.ProductDao;
 import com.lck.dao.PropertyValueDao;
+import com.lck.es.ProductEsDao;
 import com.lck.pojo.Category;
 import com.lck.pojo.Product;
 import com.lck.util.Page4Navigator;
+import com.lck.util.RestPage;
+import com.lck.util.SpringContextUtil;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
+import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.*;
+import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
+import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
+import org.springframework.data.elasticsearch.core.query.SearchQuery;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,9 +33,13 @@ import java.util.List;
  * @date 2018/12/05
  */
 @Service
+@CacheConfig(cacheNames = "products")
 public class ProductService {
     @Autowired
     ProductDao productDao;
+
+    @Autowired
+    ProductEsDao productEsDao;
 
     @Autowired
     PropertyValueDao propertyValueDao;
@@ -42,8 +56,26 @@ public class ProductService {
     @Autowired
     ReviewService reviewService;
 
+    /**
+     * 初始化数据到elasticsearch
+     *
+     * @param
+     * @return
+     */
+    private void initDataBaseToEs() {
+        Pageable pageable = new PageRequest(0, 5);
+        Page<Product> page = productEsDao.findAll(pageable);
+        if (page.getContent().isEmpty()) {
+            List<Product> products = productDao.findAll();
+            products.forEach(item -> productEsDao.save(item));
+        }
+    }
+
+    @CacheEvict(allEntries = true)
     public void add(Product product) {
         productDao.save(product);
+        // 同步到elasticsearch
+        productEsDao.save(product);
     }
 
     /**
@@ -53,24 +85,31 @@ public class ProductService {
      * @return
      */
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(allEntries = true)
     public void delete(Integer id) {
         productDao.delete(id);
+        // 同步到elasticsearch
+        productEsDao.delete(id);
         propertyValueDao.deleteByProductId(id);
     }
 
+    @Cacheable(key = "'products-one-'+#p0")
     public Product get(Integer id) {
         return productDao.findOne(id);
     }
 
+    @CacheEvict(allEntries = true)
     public void update(Product product) {
         productDao.save(product);
+        productEsDao.save(product);
     }
 
+    @Cacheable(key = "'products-cid-'+#p0+'-page-'+#p1 + '-' + #p2 ")
     public Page4Navigator<Product> list(Integer cid, int start, int size, int navigatePages) {
         Category category = categoryService.get(cid);
         Sort sort = new Sort(Sort.Direction.DESC, "id");
         Pageable pageable = new PageRequest(start, size, sort);
-        Page<Product> pageFormJpa = productDao.findByCategory(category, pageable);
+        Page<Product> pageFormJpa =  productDao.findByCategory(category, pageable);
         return new Page4Navigator<>(pageFormJpa, navigatePages);
     }
 
@@ -81,7 +120,10 @@ public class ProductService {
      * @return
      */
     public void fill(Category category) {
-        List<Product> products = listByCategory(category);
+       /* 因为 springboot 的缓存机制是通过切面编程 aop来实现的。
+        直接调用 listByCategory 方法， aop 是拦截不到的，也就不会走缓存了*/
+        ProductService productService = SpringContextUtil.getBean(ProductService.class);
+        List<Product> products = productService.listByCategory(category);
         productImageService.setFirstProductImages(products);
         category.setProducts(products);
     }
@@ -125,6 +167,7 @@ public class ProductService {
      * @param category
      * @return
      */
+    @Cacheable(key = "'products-cid-'+#p0.id")
     public List<Product> listByCategory(Category category) {
         return productDao.findByCategoryOrderById(category);
     }
@@ -144,12 +187,28 @@ public class ProductService {
         }
     }
 
+    /**
+     * 使用elasticsearch查询
+     *
+     * @param keyword
+     * @param start
+     * @param size
+     * @return List
+     */
     public List<Product> search(String keyword, int start, int size) {
+
+        initDataBaseToEs();
+        FunctionScoreQueryBuilder functionScoreQueryBuilder = QueryBuilders
+                .functionScoreQuery().add(QueryBuilders.matchPhraseQuery("name", keyword)
+                        , ScoreFunctionBuilders.weightFactorFunction(100))
+                .scoreMode("sum").setMinScore(10);
         Sort sort = new Sort(Sort.Direction.DESC, "id");
         Pageable pageable = new PageRequest(start, size, sort);
-        List<Product> products = productDao.findByNameLike("%" + keyword + "%", pageable);
-        return products;
+        SearchQuery searchQuery = new NativeSearchQueryBuilder()
+                .withPageable(pageable).withQuery(functionScoreQueryBuilder).build();
+        Page<Product> page = productEsDao.search(searchQuery);
+        return page.getContent();
     }
 
-    
+
 }

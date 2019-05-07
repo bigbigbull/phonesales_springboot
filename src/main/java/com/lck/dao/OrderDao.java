@@ -21,4 +21,5 @@ public interface OrderDao extends JpaRepository<Order, Integer> {
      * @return List
      */
     List<Order> findByUserAndStatusNotOrderByIdDesc(User user, String status);
+    
 }
