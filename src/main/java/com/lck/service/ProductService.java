@@ -71,11 +71,19 @@ public class ProductService {
         }
     }
 
+
+    /**
+     *  将返回的有id的数据再次存入数据库
+     *
+     * @param  product
+     * @return
+     */
     @CacheEvict(allEntries = true)
     public void add(Product product) {
-        productDao.save(product);
+        Product product1 = productDao.save(product);
+
         // 同步到elasticsearch
-        productEsDao.save(product);
+        productEsDao.save(product1);
     }
 
     /**
@@ -109,7 +117,7 @@ public class ProductService {
         Category category = categoryService.get(cid);
         Sort sort = new Sort(Sort.Direction.DESC, "id");
         Pageable pageable = new PageRequest(start, size, sort);
-        Page<Product> pageFormJpa =  productDao.findByCategory(category, pageable);
+        Page<Product> pageFormJpa = productDao.findByCategory(category, pageable);
         return new Page4Navigator<>(pageFormJpa, navigatePages);
     }
 
@@ -196,16 +204,18 @@ public class ProductService {
      * @return List
      */
     public List<Product> search(String keyword, int start, int size) {
-
+      
         initDataBaseToEs();
-        FunctionScoreQueryBuilder functionScoreQueryBuilder = QueryBuilders
-                .functionScoreQuery().add(QueryBuilders.matchPhraseQuery("name", keyword)
-                        , ScoreFunctionBuilders.weightFactorFunction(100))
-                .scoreMode("sum").setMinScore(10);
+        FunctionScoreQueryBuilder functionScoreQueryBuilder = QueryBuilders.functionScoreQuery()
+                .add(QueryBuilders.matchPhraseQuery("name", keyword),
+                        ScoreFunctionBuilders.weightFactorFunction(100))
+                .scoreMode("sum")
+                .setMinScore(10);
         Sort sort = new Sort(Sort.Direction.DESC, "id");
         Pageable pageable = new PageRequest(start, size, sort);
         SearchQuery searchQuery = new NativeSearchQueryBuilder()
-                .withPageable(pageable).withQuery(functionScoreQueryBuilder).build();
+                .withPageable(pageable)
+                .withQuery(functionScoreQueryBuilder).build();
         Page<Product> page = productEsDao.search(searchQuery);
         return page.getContent();
     }

@@ -1,6 +1,7 @@
 package com.lck.controller;
 
 import com.lck.comparator.*;
+import com.lck.es.ProductEsDao;
 import com.lck.pojo.*;
 import com.lck.service.*;
 import com.lck.util.Result;
